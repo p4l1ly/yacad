@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a300e6c518652e02b6606e8e7cf804577329959d4bad936712299bb2f4d79d3f
+-- hash: 61661b8fec4540906e511ab280cfad5a4d2c1f6e5b70247cee4c8714c2f51d85
 
 name:           yacad
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Yacad.ImplicitFn
       Yacad.Line
       Yacad.Raster
+      Yacad.Shapes.InvoluteGear
       Yacad.Transpose
   other-modules:
       Paths_yacad
