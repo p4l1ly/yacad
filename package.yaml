@@ -1,10 +1,10 @@
 name:                yacad
 version:             0.1.0.0
-github:              "githubuser/yacad"
+github:              "p4l1ly/yacad"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Pavol Vargovcik"
+maintainer:          "pavol.vargovcik@gmail.com"
+copyright:           "2020 Pavol Vargovcik"
 
 extra-source-files:
 - README.md

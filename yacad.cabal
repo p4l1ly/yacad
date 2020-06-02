@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 61661b8fec4540906e511ab280cfad5a4d2c1f6e5b70247cee4c8714c2f51d85
+-- hash: 23f21d326c6282a00240bf627e65d68c65474348281e73050b52ae2c0cd566f6
 
 name:           yacad
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/yacad#readme>
-homepage:       https://github.com/githubuser/yacad#readme
-bug-reports:    https://github.com/githubuser/yacad/issues
-author:         Author name here
+homepage:       https://github.com/p4l1ly/yacad#readme
+bug-reports:    https://github.com/p4l1ly/yacad/issues
+author:         Pavol Vargovcik
 maintainer:     example@example.com
-copyright:      2020 Author name here
+copyright:      2020 Pavol Vargovcik
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/yacad
+  location: https://github.com/p4l1ly/yacad
 
 library
   exposed-modules:
