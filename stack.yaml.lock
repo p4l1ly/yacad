@@ -12,16 +12,16 @@ packages:
   original:
     hackage: storable-endian-0.2.6@sha256:cae7aac2bfe6037660b2cf294891867e69bcd74e739a3b3ea759e9ad99d6c889,801
 - completed:
-    size: 124774400
-    filepath: /home/paly/hobby/ImplicitCAD.tar
     name: implicit
     version: 0.2.1
-    sha256: 2a6d228811b8265c5211fce932253a68b1a18bea434c51f749f9aa84595dd8f0
+    git: https://github.com/p4l1ly/ImplicitCAD.git
     pantry-tree:
-      size: 69241
-      sha256: 1cb5e999298cc8b0b908b331952b16c106a071930b9b47ba509c9a2d1c296c92
+      size: 7248
+      sha256: 6ffdd9614d252acd84b1d9227b8cd16d505bb9b36cee16e95d6b105cc6b72726
+    commit: a792da238197b9832795a92ae08cc0b51c1ac805
   original:
-    filepath: /home/paly/hobby/ImplicitCAD.tar
+    git: https://github.com/p4l1ly/ImplicitCAD.git
+    commit: a792da238197b9832795a92ae08cc0b51c1ac805
 snapshots:
 - completed:
     size: 494635
