@@ -24,6 +24,7 @@ dependencies:
 - implicit
 - array
 - data-ordlist
+- recursion-schemes
 
 library:
   source-dirs: src
