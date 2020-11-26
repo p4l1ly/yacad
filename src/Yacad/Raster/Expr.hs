@@ -30,4 +30,21 @@ run = elgot concat coalg . (True,)
 coalg :: (Bool, Expr point) -> Either [(point, Bool)] [(Bool, Expr point)]
 coalg (add, Union xs)    = Right$ map (add,) xs
 coalg (add, Diff (x:xs)) = Right$ (add, x) : map (not add,) xs
-coalg (add, Obj pts)     = Left$ map (, add) pts
+coalg (add, Obj pts)     = Left $ map (, add) pts
+
+------------------------------------------------------------------
+-- Explicit implementation
+
+data ExprE point
+  = UnionE [ExprE point]
+  | DiffE [ExprE point]
+  | ObjE [point]
+  deriving Show
+
+runE :: ExprE point -> [(point, Bool)]
+runE = recE . (True,)
+
+recE :: (Bool, ExprE point) -> [(point, Bool)]
+recE (add, UnionE xs)    = concatMap (recE . (add,)) xs
+recE (add, DiffE (x:xs)) = recE (add, x) ++ concatMap (recE . (not add,)) xs
+recE (add, ObjE pts)     = map (, add) pts
