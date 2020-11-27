@@ -7,6 +7,7 @@ module Yacad.Raster.Expr where
 import Data.Functor.Foldable
 import Data.Fix
 
+-- FIXME: Diff deletes points from upper layers
 -- Boilerplate begins here
 
 data ExprF point rec
