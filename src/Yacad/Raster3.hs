@@ -3,6 +3,8 @@
 
 module Yacad.Raster3 where
 
+import Yacad.Raster.Expr
+
 import Debug.Trace
 import Data.List (intercalate)
 
@@ -42,28 +44,33 @@ implicit :: Raster3 -> SymbolicObj3
 implicit raster = Cad.implicit (implicit_fn raster) (box raster)
 
 blank :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
-blank res@(xr, yr, zr) ((x1, y1, z1), (x2, y2, z2)) =
+
+blank res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
-  where bnds = ((floor$ x1/xr, floor$ y1/yr, floor$ z1/zr), (floor$ x2/xr, floor$ y2/yr, floor$ z2/zr))
+  where bnds = bounds res box
 
 full :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
-full res@(xr, yr, zr) ((x1, y1, z1), (x2, y2, z2)) =
+full res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat True}
-  where bnds = ((floor$ x1/xr, floor$ y1/yr, floor$ z1/zr), (floor$ x2/xr, floor$ y2/yr, floor$ z2/zr))
+  where bnds = bounds res box
 
 fromImplicit :: ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
-fromImplicit res@(xr, yr, zr) ((x1, y1, z1), (x2, y2, z2)) obj = raster bnds
+fromImplicit res box obj = 
+  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= 0) $ boxPoints res bnds}
   where
-    bnds = ((floor$ x1/xr, floor$ y1/yr, floor$ z1/zr), (floor$ x2/xr, floor$ y2/yr, floor$ z2/zr))
-    raster ((xi1, yi1, zi1), (xi2, yi2, zi2)) =
-      Raster3
-        { resolution = res
-        , raster = A.listArray bnds
-                 $ map (\pos -> obj pos <= 0)
-                      [ ((fromIntegral x+0.5)*xr, (fromIntegral y+0.5)*yr, (fromIntegral z+0.5)*zr) 
-                      | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]
-                      ]
-        }
+    bnds = bounds res box
+      
+bounds :: ℝ3 -> (ℝ3, ℝ3) -> ((Int, Int, Int), (Int, Int, Int))
+bounds res box = mapTuple (raster_ix res) box
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple f (a1, a2) = (f a1, f a2)
+
+boxPoints :: ℝ3 -> ((Int, Int, Int), (Int, Int, Int)) -> [ℝ3]
+boxPoints (xr, yr, zr) ((xi1, yi1, zi1), (xi2, yi2, zi2)) =
+  [ ((fromIntegral x+0.5)*xr, (fromIntegral y+0.5)*yr, (fromIntegral z+0.5)*zr) 
+  | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]
+  ]
 
 rasterize :: ℝ3 -> SymbolicObj3 -> Raster3
 rasterize res obj = fromImplicit res (getBox3 obj) (getImplicit3 obj)
@@ -124,6 +131,33 @@ fill res@(xr, yr, zr) frontier0 fn =
         (current, new')
 
     isInside (x, y, z) = fn (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z) <= 0
+
+fillBox :: ℝ3 -> Box3 -> Obj3 -> [ℝ3]
+fillBox res box obj = filter (\pos -> obj pos <= 0)$ boxPoints res$ bounds res box
+
+fillObj :: ℝ3 -> SymbolicObj3 -> [ℝ3]
+fillObj res obj = fillBox res (getBox3 obj) (getImplicit3 obj)
+
+result :: (b -> b') -> ((a -> b) -> (a -> b'))
+result =  (.)
+swap_1_2 = flip    
+swap_2_3 = result flip
+shl_3 = swap_2_3.swap_1_2
+
+fillObjE :: SymbolicObj3 -> Expr (ℝ3 -> [ℝ3])
+fillObjE obj = Obj [flip fillObj obj]
+
+fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> [ℝ3])
+fillBoxE box obj = Obj [shl_3 fillBox box obj]
+
+fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> [ℝ3])
+fillE frontier0 fn = Obj [shl_3 fill frontier0 fn]
+
+modify :: Raster3 -> Expr (ℝ3 -> [ℝ3]) -> Raster3
+modify old@(Raster3 res _) expr = old // do
+  (f, add) <- run expr
+  p <- f res
+  return (p, add)
 
 window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3 -> Raster3
 window pixel_to_pixels (Raster3 res@(xr, yr, zr) arr) = Raster3 res$
