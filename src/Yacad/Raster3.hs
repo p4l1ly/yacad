@@ -168,10 +168,11 @@ rotateE (yz, zx, xy) =
     in
         rotateXY xy . rotateZX zx . rotateYZ yz
 
-(=>>) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> [ℝ3]) -> Expr (ℝ3 -> [ℝ3])
-(=>>) f (Obj fns) = Obj$ map (\fn -> (\res -> map f $ fn res)) fns
-(=>>) f (Union exprs) = Union$ map (f=>>) exprs
-(=>>) f (Diff exprs) = Diff$ map (f=>>) exprs
+infixr 1 ~>
+(~>) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> [ℝ3]) -> Expr (ℝ3 -> [ℝ3])
+(~>) f (Obj fns) = Obj$ map (\fn -> (\res -> map f $ fn res)) fns
+(~>) f (Union exprs) = Union$ map (f~>) exprs
+(~>) f (Diff exprs) = Diff$ map (f~>) exprs
 
 modify :: Raster3 -> Expr (ℝ3 -> [ℝ3]) -> Raster3
 modify old@(Raster3 res _) expr = old // do
