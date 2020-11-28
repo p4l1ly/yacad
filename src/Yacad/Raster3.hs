@@ -153,6 +153,26 @@ fillBoxE box obj = Obj [shl_3 fillBox box obj]
 fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> [ℝ3])
 fillE frontier0 fn = Obj [shl_3 fill frontier0 fn]
 
+translateE :: ℝ3 -> (ℝ3 -> ℝ3)
+translateE v = (+v)
+
+rotateE :: ℝ3 -> (ℝ3 -> ℝ3)
+rotateE (yz, zx, xy) =
+  let
+        rotateYZ :: ℝ -> ℝ3 -> ℝ3
+        rotateYZ θ (x,y,z) = ( x, y*cos θ - z*sin θ, z*cos θ + y*sin θ)
+        rotateZX :: ℝ -> ℝ3 -> ℝ3
+        rotateZX θ (x,y,z) = ( x*cos θ + z*sin θ, y, z*cos θ - x*sin θ)
+        rotateXY :: ℝ -> ℝ3 -> ℝ3
+        rotateXY θ (x,y,z) = ( x*cos θ - y*sin θ, y*cos θ + x*sin θ, z)
+    in
+        rotateXY xy . rotateZX zx . rotateYZ yz
+
+(=>>) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> [ℝ3]) -> Expr (ℝ3 -> [ℝ3])
+(=>>) f (Obj fns) = Obj$ map (\fn -> (\res -> map f $ fn res)) fns
+(=>>) f (Union exprs) = Union$ map (f=>>) exprs
+(=>>) f (Diff exprs) = Diff$ map (f=>>) exprs
+
 modify :: Raster3 -> Expr (ℝ3 -> [ℝ3]) -> Raster3
 modify old@(Raster3 res _) expr = old // do
   (f, add) <- run expr

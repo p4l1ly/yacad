@@ -9,6 +9,8 @@ import Data.Functor.Foldable
 -- FIXME: Diff deletes points from upper layers
 -- Boilerplate begins here
 
+--DeriveTraversable, deriving (Functor, Foldable, Traversable)
+--(traverse = fmap, ale mozes pouzit aplikativnu funkciu (tym padom monadicku))
 data ExprF point rec
   = UnionF [rec]
   | DiffF [rec]
