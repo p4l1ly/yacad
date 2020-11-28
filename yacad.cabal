@@ -1,14 +1,14 @@
-cabal-version: 1.12
+cabal-version: 2.4
 
 name:           yacad
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/yacad#readme>
+description:    Mixing in multiple CAD paradigms into ImplicitCAD: rasterization, analytic geometry
 homepage:       https://github.com/p4l1ly/yacad#readme
 bug-reports:    https://github.com/p4l1ly/yacad/issues
 author:         Pavol Vargovcik
 maintainer:     pavol.vargovcik@gmail.com
 copyright:      2020 Pavol Vargovcik
-license:        BSD3
+license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -33,11 +33,12 @@ library
   hs-source-dirs:
       src
   build-depends:
-      array
-    , base >=4.7 && <5
-    , data-ordlist
+      base >=4.7 && <5
+    , array ^>=0.5.4.0
+    , data-ordlist ^>=0.4.7.0
+    , data-fix ^>=0.3.0
+    , recursion-schemes ^>=5.2.1
     , implicit
-    , recursion-schemes
   default-language: Haskell2010
 
 test-suite yacad-test
@@ -49,10 +50,11 @@ test-suite yacad-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      array
-    , base >=4.7 && <5
-    , data-ordlist
+      base >=4.7 && <5
+    , array ^>=0.5.4.0
+    , data-ordlist ^>=0.4.7.0
+    , recursion-schemes ^>=5.2.1
+    , data-fix ^>=0.3.0
     , implicit
-    , recursion-schemes
     , yacad
   default-language: Haskell2010

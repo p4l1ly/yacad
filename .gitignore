@@ -4,3 +4,4 @@
 *.stl
 *.svg
 *.scad
+/dist-newstyle/

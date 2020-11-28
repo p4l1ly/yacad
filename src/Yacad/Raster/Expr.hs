@@ -5,6 +5,7 @@
 module Yacad.Raster.Expr where
 
 import Data.Functor.Foldable
+import Data.Fix
 
 -- Boilerplate begins here
 

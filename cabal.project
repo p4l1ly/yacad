@@ -1,0 +1,6 @@
+source-repository-package
+  type: git
+  location: git://github.com/p4l1ly/ImplicitCAD.git
+
+packages:
+  yacad.cabal
