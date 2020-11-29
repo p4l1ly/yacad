@@ -32,6 +32,7 @@ library
       Yacad.Raster
       Yacad.Raster3
       Yacad.Raster.Expr
+      Yacad.Export.Export
       Yacad.Shapes.InvoluteGear
       Yacad.Transpose
   other-modules:
@@ -44,6 +45,10 @@ library
     , data-ordlist
     , implicit
     , recursion-schemes
+    , bytestring
+    , store
+    , JuicyPixels
+    , directory
   default-language: Haskell2010
 
 test-suite yacad-test
@@ -61,4 +66,8 @@ test-suite yacad-test
     , implicit
     , recursion-schemes
     , yacad
+    , bytestring
+    , store
+    , JuicyPixels
+    , directory
   default-language: Haskell2010

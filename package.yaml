@@ -25,6 +25,10 @@ dependencies:
 - array
 - data-ordlist
 - recursion-schemes
+- bytestring
+- store
+- JuicyPixels
+- directory
 
 library:
   source-dirs: src

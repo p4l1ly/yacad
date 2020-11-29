@@ -179,8 +179,8 @@ infixr 1 <~
 
 modify :: Raster3 -> Expr (ℝ3 -> [ℝ3]) -> Raster3
 modify old@(Raster3 res _) expr = old // do
-  (f, add) <- run expr
-  p <- f res
+  ((f, add), i) <- zip (run expr) [1..]
+  p <- trace (show i)$ f res
   return (p, add)
 
 window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3 -> Raster3
