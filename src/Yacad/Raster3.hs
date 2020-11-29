@@ -1,5 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+-- {-# LANGUAGE TemplateHaskell #-}
+-- {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -20,8 +20,8 @@ import qualified Graphics.Implicit as Cad
 import Graphics.Implicit.Definitions
 import Graphics.Implicit.ObjectUtil (getBox3, getImplicit3)
 
-import TH.Derive
-import Data.Store
+-- import TH.Derive
+-- import Data.Store
 
 
 data Raster3 = Raster3
