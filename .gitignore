@@ -1,6 +1,7 @@
 .vscode/
 .stack-work/
 testModel/
+testModel.svx
 test.*
 *~
 *.stl

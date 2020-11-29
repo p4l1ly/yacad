@@ -29,6 +29,8 @@ dependencies:
 - store
 - JuicyPixels
 - directory
+- deepseq
+- time
 
 library:
   source-dirs: src

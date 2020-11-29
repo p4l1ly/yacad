@@ -49,6 +49,8 @@ library
     , store
     , JuicyPixels
     , directory
+    , deepseq
+    , time
   default-language: Haskell2010
 
 test-suite yacad-test
@@ -70,4 +72,6 @@ test-suite yacad-test
     , store
     , JuicyPixels
     , directory
+    , deepseq
+    , time
   default-language: Haskell2010
