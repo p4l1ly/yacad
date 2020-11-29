@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -18,11 +20,19 @@ import qualified Graphics.Implicit as Cad
 import Graphics.Implicit.Definitions
 import Graphics.Implicit.ObjectUtil (getBox3, getImplicit3)
 
+import TH.Derive
+import Data.Store
+
+
 data Raster3 = Raster3
   { resolution :: ℝ3
   , raster :: A.Array (Int, Int, Int) Bool
   }
   deriving Show
+
+-- $($(derive [d|
+--     instance Store => Deriving (Store (Raster3 a))
+--     |]))
 
 box :: Raster3 -> (ℝ3, ℝ3)
 box (Raster3 (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
@@ -56,7 +66,7 @@ full res box =
 
 fromImplicit :: ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
 fromImplicit res box obj = 
-  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= 0) $ boxPoints res bnds}
+  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= -0.0001) $ boxPoints res bnds}
   where
     bnds = bounds res box
       
@@ -133,7 +143,7 @@ fill res@(xr, yr, zr) frontier0 fn =
     isInside (x, y, z) = fn (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z) <= 0
 
 fillBox :: ℝ3 -> Box3 -> Obj3 -> [ℝ3]
-fillBox res box obj = filter (\pos -> obj pos <= 0)$ boxPoints res$ bounds res box
+fillBox res box obj = filter (\pos -> obj pos <= -0.0001)$ boxPoints res$ bounds res box
 
 fillObj :: ℝ3 -> SymbolicObj3 -> [ℝ3]
 fillObj res obj = fillBox res (getBox3 obj) (getImplicit3 obj)
