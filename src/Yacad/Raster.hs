@@ -1,15 +1,19 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Yacad.Raster where
 
-import Debug.Trace
 import Data.List (intercalate)
 
 import Control.Arrow
 import qualified Data.Array as A
 import Data.Array ((!))
 import Data.Ix
+
+import TH.Derive
+import Data.Store
 
 import Data.List.Ordered
 import qualified Graphics.Implicit as Cad
@@ -20,6 +24,8 @@ data Raster2 = Raster2
   , raster :: A.Array (Int, Int) Bool
   }
   deriving Show
+
+$($(derive [d|instance Deriving (Store Raster2)|]))
 
 box :: Raster2 -> (ℝ2, ℝ2)
 box (Raster2 (xr, yr) (A.bounds -> ((x1, y1), (x2, y2)))) =

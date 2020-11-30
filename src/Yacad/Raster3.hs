@@ -7,9 +7,6 @@ module Yacad.Raster3 where
 
 import Yacad.Raster.Expr
 
-import Debug.Trace
-import Data.List (intercalate)
-
 import Control.Arrow
 import qualified Data.Array as A
 import Data.Array ((!))
