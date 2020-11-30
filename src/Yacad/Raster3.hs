@@ -193,7 +193,7 @@ infixr 1 <~
 modify :: Raster3 -> ℝ -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Raster3
 modify old@(Raster3 res _) dil expr = old // do
   ((f, add), i) <- zip (run expr) [1..]
-  p <- trace (show i)$ f res dil
+  p <- trace (show i)$ f res$ if add then dil else -dil
   return (p, add)
 
 window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3 -> Raster3

@@ -48,10 +48,7 @@ main =
     start <- getCPUTime
     trace "stl"$ writeSTL 0.1 "test-drawing.stl"$ Ra3.implicit$ snowman
     end <- getCPUTime
-    trace (printf "\nstl export: %f" (((fromIntegral (end - start)) / (10^12)) :: Double))$ return ()
-    
-
-    
+    trace (printf "\nstl export: %f" (((fromIntegral (end - start)) / (10^12)) :: Double))$ return ()    
 
 snowman = modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union
         [ Diff
