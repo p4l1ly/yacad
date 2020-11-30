@@ -1,4 +1,4 @@
-import Yacad.Raster as Ra2
+-- import Yacad.Raster as Ra2
 import Yacad.Raster3 as Ra3
 import Yacad.Raster.Expr
 import Yacad.Export.Export
@@ -53,7 +53,7 @@ main =
 
     
 
-snowman = modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2)))$ Union
+snowman = modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union
         [ Diff
             [ Ra3.fillObjE$ sphere 1.2
             , Ra3.fillObjE$ rect3R 0 (0, 0, 0) (2, 2, 2)

@@ -64,9 +64,9 @@ full res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat True}
   where bnds = bounds res box
 
-fromImplicit :: ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
-fromImplicit res box obj = 
-  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= -0.0001) $ boxPoints res bnds}
+fromImplicit :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
+fromImplicit dil res box obj = 
+  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= dil) $ boxPoints res bnds}
   where
     bnds = bounds res box
       
@@ -82,8 +82,8 @@ boxPoints (xr, yr, zr) ((xi1, yi1, zi1), (xi2, yi2, zi2)) =
   | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]
   ]
 
-rasterize :: ℝ3 -> SymbolicObj3 -> Raster3
-rasterize res obj = fromImplicit res (getBox3 obj) (getImplicit3 obj)
+rasterize :: ℝ -> ℝ3 -> SymbolicObj3 -> Raster3
+rasterize dil res obj = fromImplicit dil res (getBox3 obj) (getImplicit3 obj)
 
 (//) :: Raster3 -> [(ℝ3, Bool)] -> Raster3
 (//) old@(Raster3 res raster) xs = old
@@ -142,26 +142,29 @@ fill res@(xr, yr, zr) frontier0 fn =
 
     isInside (x, y, z) = fn (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z) <= 0
 
-fillBox :: ℝ3 -> Box3 -> Obj3 -> [ℝ3]
-fillBox res box obj = filter (\pos -> obj pos <= -0.0001)$ boxPoints res$ bounds res box
+fillBox :: ℝ3 -> ℝ -> Box3 -> Obj3 -> [ℝ3]
+fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds res box
 
-fillObj :: ℝ3 -> SymbolicObj3 -> [ℝ3]
-fillObj res obj = fillBox res (getBox3 obj) (getImplicit3 obj)
+fillObj :: ℝ3 -> ℝ -> SymbolicObj3 -> [ℝ3]
+fillObj res dil obj = fillBox res dil (getBox3 obj) (getImplicit3 obj)
 
 result :: (b -> b') -> ((a -> b) -> (a -> b'))
 result =  (.)
 swap_1_2 = flip    
 swap_2_3 = result flip
+swap_3_4 = (result.result) flip
+swap_4_5 = (result.result.result) flip
 shl_3 = swap_2_3.swap_1_2
+shl_4 = swap_3_4.swap_2_3.swap_1_2
 
-fillObjE :: SymbolicObj3 -> Expr (ℝ3 -> [ℝ3])
-fillObjE obj = Obj [flip fillObj obj]
+fillObjE :: SymbolicObj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
+fillObjE obj = Obj [(shl_3$ shl_3 fillObj) obj]
 
-fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> [ℝ3])
-fillBoxE box obj = Obj [shl_3 fillBox box obj]
+fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
+fillBoxE box obj = Obj [(shl_4$ shl_4 fillBox) box obj]
 
-fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> [ℝ3])
-fillE frontier0 fn = Obj [shl_3 fill frontier0 fn]
+fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> ℝ -> [ℝ3])
+fillE frontier0 fn = Obj [flip (\_ -> shl_3 fill frontier0 fn)]
 
 translateE :: ℝ3 -> (ℝ3 -> ℝ3)
 translateE v = (+v)
@@ -182,15 +185,15 @@ scaleE :: ℝ3 -> (ℝ3 -> ℝ3)
 scaleE v = (*v)
 
 infixr 1 <~
-(<~) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> [ℝ3]) -> Expr (ℝ3 -> [ℝ3])
-(<~) f (Obj fns) = Obj$ map (\fn -> (\res -> map f $ fn res)) fns
+(<~) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
+(<~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> map f $ fn res dil)) fns
 (<~) f (Union exprs) = Union$ map (f<~) exprs
 (<~) f (Diff exprs) = Diff$ map (f<~) exprs
 
-modify :: Raster3 -> Expr (ℝ3 -> [ℝ3]) -> Raster3
-modify old@(Raster3 res _) expr = old // do
+modify :: Raster3 -> ℝ -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Raster3
+modify old@(Raster3 res _) dil expr = old // do
   ((f, add), i) <- zip (run expr) [1..]
-  p <- trace (show i)$ f res
+  p <- trace (show i)$ f res dil
   return (p, add)
 
 window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3 -> Raster3
