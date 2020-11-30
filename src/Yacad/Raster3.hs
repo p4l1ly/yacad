@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -13,6 +15,9 @@ import qualified Data.Array as A
 import Data.Array ((!))
 import Data.Ix
 
+import TH.Derive
+import Data.Store
+
 import Data.List.Ordered
 import qualified Graphics.Implicit as Cad
 import Graphics.Implicit.Definitions
@@ -23,6 +28,8 @@ data Raster3 = Raster3
   , raster :: A.Array (Int, Int, Int) Bool
   }
   deriving Show
+
+$($(derive [d|instance Deriving (Store Raster3)|]))
 
 box :: Raster3 -> (ℝ3, ℝ3)
 box (Raster3 (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
@@ -202,9 +209,3 @@ example_fill = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
   map (, True) (fill (0.05, 0.05, 0.05) [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
 example_dilate = dilate 0.2 example_shell
-
-showArr :: A.Array (Int, Int) Bool -> String
-showArr arr = intercalate "\n" $
-  flip map [y1..y2]$ \y ->
-  flip map [x1..x2]$ \x -> if arr A.! (y, x) then '#' else ' '
-  where ((y1, x1), (y2, x2)) = A.bounds arr
