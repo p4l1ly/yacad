@@ -148,6 +148,14 @@ fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds
 fillObj :: ℝ3 -> ℝ -> SymbolicObj3 -> [ℝ3]
 fillObj res dil obj = fillBox res dil (getBox3 obj) (getImplicit3 obj)
 
+fillRast :: Raster3 -> [ℝ3]
+fillRast (Raster3 (rx, ry, rz) raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
+  map toWorld$ filter occupied $ points
+  where
+    occupied = (\pos -> raster!pos)
+    toWorld = (\(x,y,z) -> ((fromIntegral x+0.5)*rx, (fromIntegral y+0.5)*ry, (fromIntegral z+0.5)*rz))
+    points = [(x, y, z) | x <- [x1..x2], y <- [y1..y2], z <- [z1..z2]]
+
 result :: (b -> b') -> ((a -> b) -> (a -> b'))
 result =  (.)
 swap_1_2 = flip    
@@ -162,6 +170,9 @@ fillObjE obj = Obj [(shl_3$ shl_3 fillObj) obj]
 
 fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillBoxE box obj = Obj [(shl_4$ shl_4 fillBox) box obj]
+
+fillRastE :: Raster3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
+fillRastE rast = Obj [(\_ _ -> fillRast rast)]
 
 fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillE frontier0 fn = Obj [flip (\_ -> shl_3 fill frontier0 fn)]
