@@ -51,6 +51,9 @@ library
     , directory
     , deepseq
     , time
+    , th-utilities
+    , hxt
+    , scanf
   default-language: Haskell2010
 
 test-suite yacad-test
@@ -74,4 +77,7 @@ test-suite yacad-test
     , directory
     , deepseq
     , time
+    , th-utilities
+    , hxt
+    , scanf
   default-language: Haskell2010

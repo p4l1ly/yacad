@@ -1,9 +1,7 @@
 .vscode/
 .stack-work/
-testModel/
-testModel.svx
+testm*
 test.*
 *~
 *.stl
 *.svg
-*.scad

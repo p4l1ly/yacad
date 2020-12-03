@@ -31,6 +31,9 @@ dependencies:
 - directory
 - deepseq
 - time
+- th-utilities
+- hxt
+- scanf
 
 library:
   source-dirs: src
