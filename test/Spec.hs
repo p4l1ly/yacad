@@ -76,7 +76,7 @@ snowman = modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.000
             , Ra3.fillObjE$ rect3R 0 (0, 0, 0) (2, 2, 2)
             ]
         -- , translateE (0, 0.5, 2.1) <~ rotateE (0, -pi/2, pi/2) <~ Union 
-        , translateE (0, 0, 2.1) <~ Union 
+        , (\(x, _, _) -> x > -0.5) </~ translateE (0, 0, 2.1) <~ Union 
             [ Diff
                 [ Ra3.fillObjE$ sphere 1
                 , Ra3.fillObjE$ rect3R 0 (-2.5) 0 -- FIXME: the cube is deleted from lower sphere as well...

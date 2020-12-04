@@ -195,11 +195,17 @@ rotateE (yz, zx, xy) =
 scaleE :: ℝ3 -> (ℝ3 -> ℝ3)
 scaleE v = (*v)
 
-infixr 1 <~
+infixr 0 <~
 (<~) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
 (<~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> map f $ fn res dil)) fns
 (<~) f (Union exprs) = Union$ map (f<~) exprs
 (<~) f (Diff exprs) = Diff$ map (f<~) exprs
+
+infixr 0 </~
+(</~) :: (ℝ3 -> Bool) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
+(</~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> filter f $ fn res dil)) fns
+(</~) f (Union exprs) = Union$ map (f</~) exprs
+(</~) f (Diff exprs) = Diff$ map (f</~) exprs
 
 modify :: Raster3 -> ℝ -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Raster3
 modify old@(Raster3 res _) dil expr = old // do
