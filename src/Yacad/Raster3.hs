@@ -12,7 +12,6 @@ import Data.List (intercalate)
 
 import Control.Arrow
 import qualified Data.Array as A
-import Data.Array ((!))
 import Data.Ix
 
 import Data.List.Ordered
@@ -41,14 +40,10 @@ box (Raster3 (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
   )
 
 implicit_fn :: Raster3 -> ℝ3 -> ℝ
-implicit_fn (Raster3 (xr, yr, zr) raster) = \(x, y, z) ->
-  let
-    ix = (floor$ x/xr, floor$ y/yr, floor$ z/zr)
-  in
-  if inRange bounds ix && raster!ix
+implicit_fn r = \p ->
+  if r!p
     then -1
     else 1
-  where bounds = A.bounds raster
 
 implicit :: Raster3 -> SymbolicObj3
 implicit raster = Cad.implicit (implicit_fn raster) (box raster)
@@ -76,13 +71,18 @@ mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple f (a1, a2) = (f a1, f a2)
 
 boxPoints :: ℝ3 -> ((Int, Int, Int), (Int, Int, Int)) -> [ℝ3]
-boxPoints (xr, yr, zr) ((xi1, yi1, zi1), (xi2, yi2, zi2)) =
-  [ ((fromIntegral x+0.5)*xr, (fromIntegral y+0.5)*yr, (fromIntegral z+0.5)*zr) 
-  | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]
-  ]
+boxPoints res ((xi1, yi1, zi1), (xi2, yi2, zi2)) = [toWorld res (x, y, z) | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]]
 
 rasterize :: ℝ -> ℝ3 -> SymbolicObj3 -> Raster3
 rasterize dil res obj = fromImplicit dil res (getBox3 obj) (getImplicit3 obj)
+
+(!) :: Raster3 -> ℝ3 -> Bool
+(!) (Raster3 res raster) = \p ->
+  let
+    ix = raster_ix res p
+  in
+  inRange bounds ix && raster A.! ix
+  where bounds = A.bounds raster
 
 (//) :: Raster3 -> [(ℝ3, Bool)] -> Raster3
 (//) old@(Raster3 res raster) xs = old
@@ -154,7 +154,7 @@ fillRast :: Raster3 -> [ℝ3]
 fillRast (Raster3 res raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
   map (toWorld res)$ filter occupied $ points
   where
-    occupied = (\pos -> raster!pos)
+    occupied = (\pos -> raster A.! pos)
     points = [(x, y, z) | x <- [x1..x2], y <- [y1..y2], z <- [z1..z2]]
 
 result :: (b -> b') -> ((a -> b) -> (a -> b'))
@@ -221,7 +221,7 @@ window pixel_to_pixels (Raster3 res@(xr, yr, zr) arr) = Raster3 res$
     bnds = A.bounds arr
     pos_to_pixels p@(x, y, z) = filter (inRange bnds . fst)
       $ map (\(x, y, z) -> ((floor (x/xr), floor (y/yr), floor (z/zr)), True))
-      $ pixel_to_pixels p' (arr!p)
+      $ pixel_to_pixels p' (arr A.! p)
       where p' = (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z)
 
 window_int :: ((Int, Int, Int) -> Bool -> [(Int, Int, Int)]) -> Raster3 -> Raster3
@@ -229,7 +229,7 @@ window_int pixel_to_pixels rast@(Raster3 _ arr) = rast
   {raster = A.listArray bnds (repeat False) A.// concatMap pos_to_pixels (range bnds)}
   where
     bnds = A.bounds arr
-    pos_to_pixels p = map (,True)$ filter (inRange bnds)$ pixel_to_pixels p (arr!p)
+    pos_to_pixels p = map (,True)$ filter (inRange bnds)$ pixel_to_pixels p (arr A.! p)
 
 apply_mask :: [ℝ3] -> Raster3 -> Raster3
 apply_mask mask rast@(Raster3 res@(xr, yr, zr) _) = window_int pixel_to_pixels rast
