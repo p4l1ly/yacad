@@ -42,7 +42,7 @@ writeSVX brokenSlicesOr name (Raster3 (rx, _, _) ra) =
       createDirectory name
       createDirectory$ name++"/density"
       sequence_ (map (\z -> Pic.savePngImage (PF.printf "%s/density/slice%04d.png" name z)
-                  $ Pic.ImageY8$ Pic.generateImage (\x y -> if ra!(x1+x, y1+y, z1+z) then 255 else 0) sx sy) [0..sz])
+                  $ Pic.ImageY8$ Pic.generateImage (\x y -> if ra A.! (x1+x, y1+y, z1+z) then 255 else 0) sx sy) [0..sz])
       BL.writeFile (name++"/manifest.xml")$ BB.toLazyByteString$ BB.stringUtf8
         $ PF.printf
             "<?xml version=\"1.0\"?>\n\
