@@ -37,7 +37,7 @@ data Raster3 = Raster3
 box :: Raster3 -> (ℝ3, ℝ3)
 box (Raster3 (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
   ( (xr * fromIntegral x1, yr * fromIntegral y1, zr * fromIntegral z1)
-  , (xr * fromIntegral x2, yr * fromIntegral y2, zr * fromIntegral z2)
+  , (xr * fromIntegral (x2+1), yr * fromIntegral (y2+1), zr * fromIntegral (z2+1))
   )
 
 implicit_fn :: Raster3 -> ℝ3 -> ℝ
@@ -54,7 +54,6 @@ implicit :: Raster3 -> SymbolicObj3
 implicit raster = Cad.implicit (implicit_fn raster) (box raster)
 
 blank :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
-
 blank res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
   where bnds = bounds res box
@@ -99,6 +98,9 @@ adjust (xr, yr, zr) = \(x, y, z) -> (x / xr, y / yr, z/zr)
 
 raster_ix :: ℝ3 -> ℝ3 -> (Int, Int, Int)
 raster_ix (xr, yr, zr) = \(x, y, z) -> (floor$ x / xr, floor$ y / yr, floor$ z / zr)
+
+toWorld :: ℝ3 -> (Int, Int, Int) -> ℝ3
+toWorld (xr, yr, zr) = \(x,y,z) -> ((fromIntegral x+0.5)*xr, (fromIntegral y+0.5)*yr, (fromIntegral z+0.5)*zr)
 
 shell :: ℝ3 -> [ℝ3] -> (ℝ3 -> ℝ) -> [ℝ3]
 shell res@(xr, yr, zr) frontier0 fn =
@@ -149,11 +151,10 @@ fillObj :: ℝ3 -> ℝ -> SymbolicObj3 -> [ℝ3]
 fillObj res dil obj = fillBox res dil (getBox3 obj) (getImplicit3 obj)
 
 fillRast :: Raster3 -> [ℝ3]
-fillRast (Raster3 (rx, ry, rz) raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
-  map toWorld$ filter occupied $ points
+fillRast (Raster3 res raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
+  map (toWorld res)$ filter occupied $ points
   where
     occupied = (\pos -> raster!pos)
-    toWorld = (\(x,y,z) -> ((fromIntegral x+0.5)*rx, (fromIntegral y+0.5)*ry, (fromIntegral z+0.5)*rz))
     points = [(x, y, z) | x <- [x1..x2], y <- [y1..y2], z <- [z1..z2]]
 
 result :: (b -> b') -> ((a -> b) -> (a -> b'))
