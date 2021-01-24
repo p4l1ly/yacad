@@ -90,7 +90,7 @@ xpRaster brokenSlicesOr
               let
                 (xx, yy, zz, rr) = (x, y, z, r)*1000
               in
-              blank (rr, rr, rr)$ mapTuple (fixSlicesOr brokenSlicesOr) ((xx+rr*0.5, yy+rr*0.5, zz+rr*0.5), (xx+(fromIntegral sx-0.5)*rr, yy+(fromIntegral sy-0.5)*rr, zz+(fromIntegral sz-0.5)*rr))
+              blank 0 (rr, rr, rr)$ mapTuple (fixSlicesOr brokenSlicesOr) ((xx+rr*0.5, yy+rr*0.5, zz+rr*0.5), (xx+(fromIntegral sx-0.5)*rr, yy+(fromIntegral sy-0.5)*rr, zz+(fromIntegral sz-0.5)*rr))
         , \(Raster3 ((fixSlicesOr brokenSlicesOr) -> (rx, ry, rz)) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) -> 
               (x2-x1, y2-y1, z2-z1, fromIntegral x1*rx, fromIntegral y1*ry, fromIntegral z1*rz, rx*0.001)
         )$

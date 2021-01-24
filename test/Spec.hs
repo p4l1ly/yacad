@@ -55,14 +55,14 @@ main =
     trace (printf "svx import: %f" (((fromIntegral (end - start)) / (10^12)) :: Double))$ return ()
 
     start <- trace "combine implicit"$ getCPUTime
-    end <- (modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union [
+    end <- (modify (Ra3.blank 0 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union [
         fillObjE$ Ra3.implicit ra
       , fillObjE$ Ra3.implicit snowman
       ]) `deepseq` getCPUTime
     trace (printf "combine rasters implicit: %f" (((fromIntegral (end - start)) / (10^12)) :: Double))$ return ()
 
     start <- trace "combine fillRast"$ getCPUTime
-    end <- (modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union [
+    end <- (modify (Ra3.blank 0 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union [
         fillRastE$ ra
       , fillRastE$ snowman
       ]) `deepseq` getCPUTime
@@ -70,7 +70,7 @@ main =
     trace "svx-from-svx"$ writeSVX True "testm-svx-from-svx" ra
     trace "stl-from-svx"$ writeSTL 0.1 "testm-stl-from-svx.stl"$ Ra3.implicit$ ra
 
-snowman = modify (Ra3.blank 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union
+snowman = modify (Ra3.blank 0 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union
         [ Diff
             [ Ra3.fillObjE$ sphere 1.2
             , Ra3.fillObjE$ rect3R 0 (0, 0, 0) (2, 2, 2)

@@ -48,24 +48,24 @@ implicit_fn r = \p ->
 implicit :: Raster3 -> SymbolicObj3
 implicit raster = Cad.implicit (implicit_fn raster) (box raster)
 
-blank :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
-blank res box =
+blank :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Raster3
+blank dil res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
-  where bnds = bounds res box
+  where bnds = bounds dil res box
 
-full :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
-full res box =
+full :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Raster3
+full dil res box =
   Raster3{resolution = res, raster = A.listArray bnds$ repeat True}
-  where bnds = bounds res box
+  where bnds = bounds dil res box
 
 fromImplicit :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
 fromImplicit dil res box obj = 
   Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= dil) $ boxPoints res bnds}
   where
-    bnds = bounds res box
+    bnds = bounds dil res box
       
-bounds :: ℝ3 -> (ℝ3, ℝ3) -> ((Int, Int, Int), (Int, Int, Int))
-bounds res box = mapTuple (raster_ix res) box
+bounds ::  ℝ -> ℝ3 -> (ℝ3, ℝ3) -> ((Int, Int, Int), (Int, Int, Int))
+bounds dil res (start, end) = mapTuple (raster_ix res) (start - (dil, dil, dil), end + (dil, dil, dil))
 
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple f (a1, a2) = (f a1, f a2)
@@ -145,13 +145,13 @@ fill res@(xr, yr, zr) frontier0 fn =
     isInside (x, y, z) = fn (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z) <= 0
 
 fillBox :: ℝ3 -> ℝ -> Box3 -> Obj3 -> [ℝ3]
-fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds res box
+fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds dil res box
 
 fillObj :: ℝ3 -> ℝ -> SymbolicObj3 -> [ℝ3]
 fillObj res dil obj = fillBox res dil (getBox3 obj) (getImplicit3 obj)
 
-fillCube :: ℝ3 -> Box3 -> [ℝ3]
-fillCube res box = boxPoints res$ bounds res box
+fillCube :: ℝ3 -> ℝ -> Box3 -> [ℝ3]
+fillCube res dil box = boxPoints res$ bounds dil res box
 
 fillRast :: Raster3 -> [ℝ3]
 fillRast (Raster3 res raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
@@ -182,7 +182,7 @@ fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillBoxE box obj = Obj [(shl_4$ shl_4 fillBox) box obj]
 
 fillCubeE :: Box3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
-fillCubeE box = Obj [(\res _ -> fillCube res box)]
+fillCubeE box = Obj [(shl_3$ shl_3 fillCube) box]
 
 fillRastE :: Raster3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillRastE rast = Obj [(\_ _ -> fillRast rast)]
@@ -262,10 +262,10 @@ surrounding (x, y, z) =
   where
     ds = [-1, 0, 1]
 
-example_shell = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
+example_shell = blank 0 (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
   map (, True) (shell (0.05, 0.05, 0.05) [(1, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
-example_fill = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
+example_fill = blank 0 (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
   map (, True) (fill (0.05, 0.05, 0.05) [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
 example_dilate = dilate 0.2 example_shell
