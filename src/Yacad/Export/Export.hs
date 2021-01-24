@@ -32,7 +32,7 @@ writeSVX :: Bool -> String -> Raster3 -> IO ()
 writeSVX brokenSlicesOr name (Raster3 (rx, _, _) ra) =
   let
     box@((x1, y1, z1), (x2, y2, z2)) = A.bounds ra
-    size@(sx, sy, sz) = (x2-x1, y2-y1, z2-z1)
+    size@(sx, sy, sz) = (x2-x1+1, y2-y1+1, z2-z1+1)
     boxf@((_, y1f, z1f), (_, y2f, z2f)) = mapTuple (fixSlicesOr brokenSlicesOr)$ box
     sizef@(sxf, syf, szf) = (fixSlicesOr brokenSlicesOr) size
   in
@@ -42,7 +42,7 @@ writeSVX brokenSlicesOr name (Raster3 (rx, _, _) ra) =
       createDirectory name
       createDirectory$ name++"/density"
       sequence_ (map (\z -> Pic.savePngImage (PF.printf "%s/density/slice%04d.png" name z)
-                  $ Pic.ImageY8$ Pic.generateImage (\x y -> if ra A.! (x1+x, y1+y, z1+z) then 255 else 0) sx sy) [0..sz])
+                  $ Pic.ImageY8$ Pic.generateImage (\x y -> if ra A.! (x1+x, y1+y, z1+z) then 255 else 0) sx sy) [0..sz-1])
       BL.writeFile (name++"/manifest.xml")$ BB.toLazyByteString$ BB.stringUtf8
         $ PF.printf
             "<?xml version=\"1.0\"?>\n\
@@ -60,7 +60,7 @@ writeSVX brokenSlicesOr name (Raster3 (rx, _, _) ra) =
             \        <entry key=\"creationDate\" value=\"2020/11/29\" />\n\
             \    </metadata>\n\
             \</grid>"
-            (sx+1) (syf+1) (szf+1)
+            (sx) (syf) (szf)
             (fromIntegral x1*rx*0.001) (fromIntegral y1f*rx*0.001) (fromIntegral z1f*rx*0.001)
             (rx/1000) "%04d"
 
@@ -136,7 +136,7 @@ readSVX brokenSlicesOr name =
                 Right (Pic.ImageY8 img) ->
                   return$ map (\(x, y) -> (x1 + x, y1 + y, z1 + z))$
                           filter (\(x, y) -> Pic.pixelAt img x y /= 0)
-                          [(x, y) | x <- [0..x2-x1-1], y <- [0..y2-y1-1]]
+                          [(x, y) | x <- [0..x2-x1], y <- [0..y2-y1]]
                 Right _ -> return$ Debug.trace ("Unsupported image format " ++ file)$ []
 
 

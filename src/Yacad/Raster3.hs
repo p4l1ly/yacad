@@ -50,7 +50,7 @@ implicit raster = Cad.implicit (implicit_fn raster) (box raster)
 
 blank :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Raster3
 blank dil res box =
-  Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
+  trace (show bnds)$ Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
   where bnds = bounds dil res box
 
 full :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Raster3
