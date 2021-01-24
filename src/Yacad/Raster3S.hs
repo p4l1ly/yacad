@@ -3,12 +3,14 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Yacad.Raster3 where
+module Yacad.Raster3S where
 
 import Yacad.Raster.Expr
 
 import Debug.Trace
 import Data.List (intercalate)
+
+import Data.Stack
 
 import Control.Arrow
 import qualified Data.Array as A
@@ -22,45 +24,59 @@ import Graphics.Implicit.ObjectUtil (getBox3, getImplicit3)
 -- import TH.Derive
 -- import Data.Store
 
+type S = Stack Int
 
-data Raster3 = Raster3
+data Raster3S = Raster3S
   { resolution :: ℝ3
-  , raster :: A.Array (Int, Int, Int) Bool
+  , raster :: A.Array (Int, Int, Int) S
   }
   deriving Show
 
 -- $($(derive [d|
---     instance Store => Deriving (Store (Raster3 a))
+--     instance Store => Deriving (Store (Raster3S a))
 --     |]))
 
-box :: Raster3 -> (ℝ3, ℝ3)
-box (Raster3 (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
+box :: Raster3S -> (ℝ3, ℝ3)
+box (Raster3S (xr, yr, zr) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) =
   ( (xr * fromIntegral x1, yr * fromIntegral y1, zr * fromIntegral z1)
   , (xr * fromIntegral (x2+1), yr * fromIntegral (y2+1), zr * fromIntegral (z2+1))
   )
 
-implicit_fn :: Raster3 -> ℝ3 -> ℝ
+implicit_fn :: Raster3S -> ℝ3 -> ℝ
 implicit_fn r = \p ->
-  if r!p
+  if isOccupied$ r!p
     then -1
     else 1
 
-implicit :: Raster3 -> SymbolicObj3
+implicit :: Raster3S -> SymbolicObj3
 implicit raster = Cad.implicit (implicit_fn raster) (box raster)
 
-blank :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
+emptyVox :: S
+emptyVox = stackNew
+
+occupiedVox :: S
+occupiedVox = stackPush stackNew 1
+
+isOccupied :: S -> Bool
+isOccupied s = stackIsEmpty s
+
+occupancyToVox :: Bool -> S
+occupancyToVox False = emptyVox
+occupancyToVox True = occupiedVox
+
+blank :: ℝ3 -> (ℝ3, ℝ3) -> Raster3S
 blank res box =
-  Raster3{resolution = res, raster = A.listArray bnds$ repeat False}
+  Raster3S{resolution = res, raster = A.listArray bnds$ repeat emptyVox}
   where bnds = bounds res box
 
-full :: ℝ3 -> (ℝ3, ℝ3) -> Raster3
+full :: ℝ3 -> (ℝ3, ℝ3) -> Raster3S
 full res box =
-  Raster3{resolution = res, raster = A.listArray bnds$ repeat True}
+  Raster3S{resolution = res, raster = A.listArray bnds$ repeat$ occupiedVox}
   where bnds = bounds res box
 
-fromImplicit :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3
+fromImplicit :: ℝ -> ℝ3 -> (ℝ3, ℝ3) -> Obj3 -> Raster3S
 fromImplicit dil res box obj = 
-  Raster3{resolution = res, raster = A.listArray bnds$ map (\pos -> obj pos <= dil) $ boxPoints res bnds}
+  Raster3S{resolution = res, raster = A.listArray bnds$ map (\pos -> occupancyToVox$ obj pos <= dil) $ boxPoints res bnds}
   where
     bnds = bounds res box
       
@@ -73,25 +89,27 @@ mapTuple f (a1, a2) = (f a1, f a2)
 boxPoints :: ℝ3 -> ((Int, Int, Int), (Int, Int, Int)) -> [ℝ3]
 boxPoints res ((xi1, yi1, zi1), (xi2, yi2, zi2)) = [toWorld res (x, y, z) | x <- [xi1..xi2], y <- [yi1..yi2], z <- [zi1..zi2]]
 
-rasterize :: ℝ -> ℝ3 -> SymbolicObj3 -> Raster3
+rasterize :: ℝ -> ℝ3 -> SymbolicObj3 -> Raster3S
 rasterize dil res obj = fromImplicit dil res (getBox3 obj) (getImplicit3 obj)
 
-(!) :: Raster3 -> ℝ3 -> Bool
-(!) (Raster3 res raster) = \p ->
+(!) :: Raster3S -> ℝ3 -> S
+(!) (Raster3S res raster) = \p ->
   let
     ix = raster_ix res p
   in
-  inRange bounds ix && raster A.! ix
+    if inRange bounds ix
+      then raster A.! ix
+      else emptyVox
   where bounds = A.bounds raster
 
-(//) :: Raster3 -> [(ℝ3, Bool)] -> Raster3
-(//) old@(Raster3 res raster) xs = old
-  {raster = raster A.// filter_valid (map (first$ raster_ix res) xs)}
-  where filter_valid = filter$ (inRange$ A.bounds raster) . fst
+-- (//) :: Raster3S -> [(ℝ3, Bool)] -> Raster3S
+-- (//) old@(Raster3S res raster) xs = old
+--   {raster = raster A.// filter_valid (map (first$ raster_ix res) xs)}
+--   where filter_valid = filter$ (inRange$ A.bounds raster) . fst
 
-(//@) :: Raster3 -> [((Int, Int, Int), Bool)] -> Raster3
-(//@) old@(Raster3 _ raster) xs = old{raster = raster A.// filter_valid xs}
-  where filter_valid = filter$ (inRange$ A.bounds raster) . fst
+-- (//@) :: Raster3S -> [((Int, Int, Int), Bool)] -> Raster3S
+-- (//@) old@(Raster3S _ raster) xs = old{raster = raster A.// filter_valid xs}
+--   where filter_valid = filter$ (inRange$ A.bounds raster) . fst
 
 adjust :: ℝ3 -> ℝ3 -> ℝ3
 adjust (xr, yr, zr) = \(x, y, z) -> (x / xr, y / yr, z/zr)
@@ -150,29 +168,20 @@ fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds
 fillObj :: ℝ3 -> ℝ -> SymbolicObj3 -> [ℝ3]
 fillObj res dil obj = fillBox res dil (getBox3 obj) (getImplicit3 obj)
 
-fillCube :: ℝ3 -> Box3 -> [ℝ3]
-fillCube res box = boxPoints res$ bounds res box
-
-fillRast :: Raster3 -> [ℝ3]
-fillRast (Raster3 res raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
+fillRast :: Raster3S -> [ℝ3]
+fillRast (Raster3S res raster@(A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) = 
   map (toWorld res)$ filter occupied $ points
   where
-    occupied = (\pos -> raster A.! pos)
+    occupied = (\pos -> isOccupied$ raster A.! pos)
     points = [(x, y, z) | x <- [x1..x2], y <- [y1..y2], z <- [z1..z2]]
 
 result :: (b -> b') -> ((a -> b) -> (a -> b'))
 result =  (.)
-swap_1_2 :: (a -> b -> c) -> b -> a -> c
 swap_1_2 = flip    
-swap_2_3 :: (a1 -> a2 -> b -> c) -> a1 -> b -> a2 -> c
 swap_2_3 = result flip
-swap_3_4 :: (a1 -> a2 -> a3 -> b -> c) -> a1 -> a2 -> b -> a3 -> c
 swap_3_4 = (result.result) flip
-swap_4_5 :: (a1 -> a2 -> a3 -> a4 -> b -> c) -> a1 -> a2 -> a3 -> b -> a4 -> c
 swap_4_5 = (result.result.result) flip
-shl_3 :: (a2 -> a1 -> b -> c) -> a1 -> b -> a2 -> c
 shl_3 = swap_2_3.swap_1_2
-shl_4 :: (a3 -> a1 -> a2 -> b -> c) -> a1 -> a2 -> b -> a3 -> c
 shl_4 = swap_3_4.swap_2_3.swap_1_2
 
 fillObjE :: SymbolicObj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
@@ -181,10 +190,7 @@ fillObjE obj = Obj [(shl_3$ shl_3 fillObj) obj]
 fillBoxE :: Box3 -> Obj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillBoxE box obj = Obj [(shl_4$ shl_4 fillBox) box obj]
 
-fillCubeE :: Box3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
-fillCubeE box = Obj [(\res _ -> fillCube res box)]
-
-fillRastE :: Raster3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
+fillRastE :: Raster3S -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillRastE rast = Obj [(\_ _ -> fillRast rast)]
 
 fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> ℝ -> [ℝ3])
@@ -208,51 +214,51 @@ rotateE (yz, zx, xy) =
 scaleE :: ℝ3 -> (ℝ3 -> ℝ3)
 scaleE v = (*v)
 
-infixr 0 <~
-(<~) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
-(<~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> map f $ fn res dil)) fns
-(<~) f (Union exprs) = Union$ map (f<~) exprs
-(<~) f (Diff exprs) = Diff$ map (f<~) exprs
+infixr 0 <~~
+(<~~) :: (ℝ3 -> ℝ3) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
+(<~~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> map f $ fn res dil)) fns
+(<~~) f (Union exprs) = Union$ map (f<~~) exprs
+(<~~) f (Diff exprs) = Diff$ map (f<~~) exprs
 
-infixr 0 </~
-(</~) :: (ℝ3 -> Bool) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
-(</~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> filter f $ fn res dil)) fns
-(</~) f (Union exprs) = Union$ map (f</~) exprs
-(</~) f (Diff exprs) = Diff$ map (f</~) exprs
+infixr 0 </~~
+(</~~) :: (ℝ3 -> Bool) -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Expr (ℝ3 -> ℝ -> [ℝ3])
+(</~~) f (Obj fns) = Obj$ map (\fn -> (\res dil -> filter f $ fn res dil)) fns
+(</~~) f (Union exprs) = Union$ map (f</~~) exprs
+(</~~) f (Diff exprs) = Diff$ map (f</~~) exprs
 
-modify :: Raster3 -> ℝ -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Raster3
-modify old@(Raster3 res _) dil expr = old // do
-  ((f, add), i) <- zip (run expr) [1..]
-  p <- trace (show i)$ f res$ if add then dil else -dil
-  return (p, add)
+-- modify :: Raster3S -> ℝ -> Expr (ℝ3 -> ℝ -> [ℝ3]) -> Raster3S
+-- modify old@(Raster3S res _) dil expr = old // do
+--   ((f, add), i) <- zip (run expr) [1..]
+--   p <- trace (show i)$ f res$ if add then dil else -dil
+--   return (p, add)
 
-window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3 -> Raster3
-window pixel_to_pixels (Raster3 res@(xr, yr, zr) arr) = Raster3 res$
-  A.listArray bnds (repeat False) A.// concatMap pos_to_pixels (range bnds)
-  where
-    bnds = A.bounds arr
-    pos_to_pixels p@(x, y, z) = filter (inRange bnds . fst)
-      $ map (\(x, y, z) -> ((floor (x/xr), floor (y/yr), floor (z/zr)), True))
-      $ pixel_to_pixels p' (arr A.! p)
-      where p' = (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z)
+-- window :: (ℝ3 -> Bool -> [ℝ3]) -> Raster3S -> Raster3S
+-- window pixel_to_pixels (Raster3S res@(xr, yr, zr) arr) = Raster3S res$
+--   A.listArray bnds (repeat emptyVox) A.// concatMap pos_to_pixels (range bnds)
+--   where
+--     bnds = A.bounds arr
+--     pos_to_pixels p@(x, y, z) = filter (inRange bnds . fst)
+--       $ map (\(x, y, z) -> ((floor (x/xr), floor (y/yr), floor (z/zr)), True))
+--       $ pixel_to_pixels p' (arr A.! p)
+--       where p' = (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z)
 
-window_int :: ((Int, Int, Int) -> Bool -> [(Int, Int, Int)]) -> Raster3 -> Raster3
-window_int pixel_to_pixels rast@(Raster3 _ arr) = rast
-  {raster = A.listArray bnds (repeat False) A.// concatMap pos_to_pixels (range bnds)}
-  where
-    bnds = A.bounds arr
-    pos_to_pixels p = map (,True)$ filter (inRange bnds)$ pixel_to_pixels p (arr A.! p)
+-- window_int :: ((Int, Int, Int) -> Bool -> [(Int, Int, Int)]) -> Raster3S -> Raster3S
+-- window_int pixel_to_pixels rast@(Raster3S _ arr) = rast
+--   {raster = A.listArray bnds (repeat False) A.// concatMap pos_to_pixels (range bnds)}
+--   where
+--     bnds = A.bounds arr
+--     pos_to_pixels p = map (,True)$ filter (inRange bnds)$ pixel_to_pixels p (arr A.! p)
 
-apply_mask :: [ℝ3] -> Raster3 -> Raster3
-apply_mask mask rast@(Raster3 res@(xr, yr, zr) _) = window_int pixel_to_pixels rast
-  where
-    mask_int = map (\(x, y, z) -> (floor (x/xr), floor (y/yr), floor (z/zr))) mask
-    pixel_to_pixels _ False = []
-    pixel_to_pixels (px, py, pz) _ = map (\(x, y, z) -> (x + px, y + py, z + pz)) mask_int
+-- apply_mask :: [ℝ3] -> Raster3S -> Raster3S
+-- apply_mask mask rast@(Raster3S res@(xr, yr, zr) _) = window_int pixel_to_pixels rast
+--   where
+--     mask_int = map (\(x, y, z) -> (floor (x/xr), floor (y/yr), floor (z/zr))) mask
+--     pixel_to_pixels _ False = []
+--     pixel_to_pixels (px, py, pz) _ = map (\(x, y, z) -> (x + px, y + py, z + pz)) mask_int
 
-dilate :: ℝ -> Raster3 -> Raster3
-dilate r rast@(Raster3 res _) = apply_mask mask rast
-  where mask = fill res [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 +z^2 - r^2)
+-- dilate :: ℝ -> Raster3S -> Raster3S
+-- dilate r rast@(Raster3S res _) = apply_mask mask rast
+--   where mask = fill res [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 +z^2 - r^2)
 
 surrounding :: (Int, Int, Int) -> [(Int, Int, Int)]
 surrounding (x, y, z) =
@@ -262,13 +268,13 @@ surrounding (x, y, z) =
   where
     ds = [-1, 0, 1]
 
-example_shell = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
-  map (, True) (shell (0.05, 0.05, 0.05) [(1, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
+-- example_shell = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
+--   map (, True) (shell (0.05, 0.05, 0.05) [(1, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
-example_fill = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
-  map (, True) (fill (0.05, 0.05, 0.05) [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
+-- example_fill = blank (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
+--   map (, True) (fill (0.05, 0.05, 0.05) [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
-example_dilate = dilate 0.2 example_shell
+-- example_dilate = dilate 0.2 example_shell
 
 showArr :: A.Array (Int, Int) Bool -> String
 showArr arr = intercalate "\n" $
