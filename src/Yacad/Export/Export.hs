@@ -134,7 +134,7 @@ readSVX brokenSlicesOr name =
               case imgLoading of
                 Left err -> return$ Debug.trace ("error loading " ++ file ++ ": " ++ err)$ []
                 Right (Pic.ImageY8 img) ->
-                  return$ map (\(x, y) -> Debug.trace (show (x1 + x, y1 + y, z1 + z))$ (x1 + x, y1 + y, z1 + z))$
+                  return$ map (\(x, y) -> Debug.trace (show ((x, y, z), (x1 + x, y1 + y, z1 + z)))$ (x1 + x, y1 + y, z1 + z))$
                           filter (\(x, y) -> Pic.pixelAt img x y /= 0)
                           [(x, y) | x <- [0..x2-x1], y <- [0..y2-y1]]
                 Right _ -> return$ Debug.trace ("Unsupported image format " ++ file)$ []
