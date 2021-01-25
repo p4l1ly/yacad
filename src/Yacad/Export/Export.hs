@@ -90,7 +90,7 @@ xpRaster brokenSlicesOr
               let
                 (xx, yy, zz, rr) = (x, y, z, r)*1000
               in
-              blank 0 (rr, rr, rr)$ mapTuple (fixSlicesOr brokenSlicesOr) ((xx+rr*0.5, yy+rr*0.5, zz+rr*0.5), (xx+(fromIntegral sx-0.5)*rr, yy+(fromIntegral sy-0.5)*rr, zz+(fromIntegral sz-0.5)*rr))
+              blank 0.001 (rr, rr, rr)$ mapTuple (fixSlicesOr brokenSlicesOr) ((xx+rr*0.5, yy+rr*0.5, zz+rr*0.5), (xx+(fromIntegral sx-0.5)*rr, yy+(fromIntegral sy-0.5)*rr, zz+(fromIntegral sz-0.5)*rr))
         , \(Raster3 ((fixSlicesOr brokenSlicesOr) -> (rx, ry, rz)) (A.bounds -> ((x1, y1, z1), (x2, y2, z2)))) -> 
               (x2-x1, y2-y1, z2-z1, fromIntegral x1*rx, fromIntegral y1*ry, fromIntegral z1*rz, rx*0.001)
         )$
@@ -134,7 +134,7 @@ readSVX brokenSlicesOr name =
               case imgLoading of
                 Left err -> return$ Debug.trace ("error loading " ++ file ++ ": " ++ err)$ []
                 Right (Pic.ImageY8 img) ->
-                  return$ map (\(x, y) -> Debug.trace (show ((x, y, z), (x1 + x, y1 + y, z1 + z)))$ (x1 + x, y1 + y, z1 + z))$
+                  return$ map (\(x, y) -> (x1 + x, y1 + y, z1 + z))$
                           filter (\(x, y) -> Pic.pixelAt img x y /= 0)
                           [(x, y) | x <- [0..x2-x1], y <- [0..y2-y1]]
                 Right _ -> return$ Debug.trace ("Unsupported image format " ++ file)$ []
