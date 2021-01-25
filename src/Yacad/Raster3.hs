@@ -65,7 +65,7 @@ fromImplicit dil res box obj =
     bnds = bounds dil res box
       
 bounds ::  ℝ -> ℝ3 -> (ℝ3, ℝ3) -> ((Int, Int, Int), (Int, Int, Int))
-bounds dil res (start, end) = mapTuple (raster_ix res) (start - (dil, dil, dil), end + (dil, dil, dil))
+bounds dil res (start, end) = mapTuple (raster_ix res) (start + res/2 - (dil, dil, dil), end - res/2 + (dil, dil, dil))
 
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple f (a1, a2) = (f a1, f a2)

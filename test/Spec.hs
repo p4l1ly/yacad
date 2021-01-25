@@ -70,13 +70,20 @@ main =
     -- trace "svx-from-svx"$ writeSVX True "testm-svx-from-svx" ra
     -- trace "stl-from-svx"$ writeSTL 0.1 "testm-stl-from-svx.stl"$ Ra3.implicit$ ra
 
-    let cube = modify (Ra3.blank (-0.0001) 0.5 ((-0.5, -0.5, -0.5), (2.1, 2.5, 2.5))) (-0.0001)$ Diff [
-            Ra3.fillCubeE ((0.25, 0.0, 0.0), (1.5, 2, 2.0))
-          , Ra3.fillCubeE ((0.9, 1, 1), (1.25, 1.5, 2.1))
+    let dil = 0.0001
+    let cube = modify (Ra3.blank dil 0.5 ((-0.75, -0.5, -0.5), (2.1, 2.5, 2.5))) dil$ Diff [
+            Ra3.fillCubeE ((-0.25, 0.0, 0.0), (1.5, 2, 2.0))
+          , Ra3.fillCubeE ((0.25, 1, 1), (1.25, 1.75, 2.1))
           ]
     trace "cubeDilTest"$ writeSVX True "testm-cube-dil" cube
     ra <- readSVX True "testm-cube-dil"
     trace "cubeDilExportTest"$ writeSVX True "testm-cube-dil-from-svx" ra
+
+    let cubeImplicit = modify (Ra3.blank dil 0.5 ((-0.75, -0.5, -0.5), (2.1, 2.5, 2.5))) dil$ Diff [
+            fillObjE$ extrudeOnEdgeOf (rectR 0 (-5, 0) (0, 2)) (rectR 0 (-0.25, 0.0) (1.5, 2))
+          , Ra3.fillCubeE ((0.25, 1, 1), (1.25, 1.75, 2.1))
+          ]
+    trace "cubeDilTestImplicit"$ writeSVX True "testm-cube-dil-implicit" cubeImplicit
 
 snowman = modify (Ra3.blank 0 0.02 ((-1.5, -1.2, -1.35), (2.0, 1.2, 4.2))) (-0.0001)$ Union
         [ Diff
