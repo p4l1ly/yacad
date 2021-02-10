@@ -130,7 +130,7 @@ readSVX brokenSlicesOr name =
           case parsed of
             Nothing -> return []
             (Just (z :+ ())) -> do
-              imgLoading <- Pic.readPng$ dirName ++ file
+              imgLoading <- Debug.trace (show z)$ Pic.readPng$ dirName ++ file
               case imgLoading of
                 Left err -> return$ Debug.trace ("error loading " ++ file ++ ": " ++ err)$ []
                 Right (Pic.ImageY8 img) ->

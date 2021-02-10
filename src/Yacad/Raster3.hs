@@ -1,5 +1,6 @@
+{-# LANGUAGE RankNTypes #-}
 -- {-# LANGUAGE TemplateHaskell #-}
--- {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -18,6 +19,10 @@ import Data.List.Ordered
 import qualified Graphics.Implicit as Cad
 import Graphics.Implicit.Definitions
 import Graphics.Implicit.ObjectUtil (getBox3, getImplicit3)
+
+import Data.Array.ST
+import Control.Monad.ST
+import Control.Monad
 
 -- import TH.Derive
 -- import Data.Store
@@ -128,10 +133,9 @@ shell res@(xr, yr, zr) frontier0 fn =
     yrh = yr/2
     zrh = zr/2
 
-fill :: ℝ3 -> [ℝ3] -> (ℝ3 -> ℝ) -> [ℝ3]
-fill res@(xr, yr, zr) frontier0 fn =
-  map (\(x, y, z) -> (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z))
-  $ concat$ takeWhile (not . null)$ map snd stages
+fill :: ℝ3 -> ℝ -> [ℝ3] -> (ℝ3 -> ℝ) -> [ℝ3]
+fill res dil frontier0 fn =
+  map (toWorld res)$ concat$ takeWhile (not . null)$ map snd stages
   where
     frontier = sort$ map (raster_ix res) frontier0
     stages = flip iterate ([], frontier)$ \(old, current) ->
@@ -142,7 +146,58 @@ fill res@(xr, yr, zr) frontier0 fn =
       in
         (current, new')
 
-    isInside (x, y, z) = fn (xr * fromIntegral x, yr * fromIntegral y, zr * fromIntegral z) <= 0
+    isInside coords = fn (toWorld res coords) <= dil
+
+floodFill :: ℝ3 -> ℝ -> (ℝ3 -> ST s Bool) -> (ℝ3 -> ST s ()) -> [ℝ3] -> (ℝ3 -> ℝ) -> ST s ()
+floodFill res@(rx, ry, rz) dil hasEffect write frontier0 fn
+  = mapM_ go frontier0
+      where
+        go p@(x, y, z) = do
+          he <- hasEffect p
+          when (he && (fn p <= dil)) $ do
+            write p
+            mapM_ go $ surrounding
+          where
+            surrounding =
+              [ (x-rx, y, z), (x, y-ry, z), (x, y, z-rz)
+              , (x+rx, y, z), (x, y+ry, z), (x, y, z+rz)
+              ]
+
+floodFillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> ℝ -> (ℝ3 -> ST s Bool) -> (ℝ3 -> ST s ()) -> ST s ())
+floodFillE frontier0 obj = Obj [(\res dil hasEffect write -> floodFill res dil hasEffect write frontier0 obj)]
+
+modifyST :: forall s. Raster3 -> ℝ -> Expr (ℝ3 -> ℝ -> (ℝ3 -> ST s Bool) -> (ℝ3 -> ST s ()) -> ST s ()) -> Raster3
+modifyST old@(Raster3 res d) dil expr =
+  Raster3 res$ runSTArray$ do
+    md <- thaw d
+
+    sequence$ do
+      ((f, add), i) <- zip (run expr) [1..]
+      let
+        hasEffect :: ℝ3 -> ST s Bool
+        hasEffect xyz
+          | inRange (A.bounds d) coords =
+            do
+              v <- readArray md coords
+              return$ v /= add
+          | otherwise = return False
+          where
+            coords = raster_ix res xyz
+        
+        write :: ℝ3 -> ST s ()
+        write xyz = writeArray md coords add
+          where
+            coords = raster_ix res xyz
+      
+      return$ trace (show i)$ f res (if add then dil else -dil) hasEffect write
+    
+    return md
+
+  -- old // do
+  -- ((f, add), i) <- zip (run expr) [1..]
+  -- p <- trace (show i)$ f res$ if add then dil else -dil
+  -- return (p, add)
+
 
 fillBox :: ℝ3 -> ℝ -> Box3 -> Obj3 -> [ℝ3]
 fillBox res dil box obj = filter (\pos -> obj pos <= dil)$ boxPoints res$ bounds dil res box
@@ -170,10 +225,13 @@ swap_3_4 :: (a1 -> a2 -> a3 -> b -> c) -> a1 -> a2 -> b -> a3 -> c
 swap_3_4 = (result.result) flip
 swap_4_5 :: (a1 -> a2 -> a3 -> a4 -> b -> c) -> a1 -> a2 -> a3 -> b -> a4 -> c
 swap_4_5 = (result.result.result) flip
+swap_5_6 = (result.result.result.result) flip
 shl_3 :: (a2 -> a1 -> b -> c) -> a1 -> b -> a2 -> c
 shl_3 = swap_2_3.swap_1_2
 shl_4 :: (a3 -> a1 -> a2 -> b -> c) -> a1 -> a2 -> b -> a3 -> c
 shl_4 = swap_3_4.swap_2_3.swap_1_2
+shl_5 = swap_4_5.swap_3_4.swap_2_3.swap_1_2
+shl_6 = swap_5_6.swap_4_5.swap_3_4.swap_2_3.swap_1_2
 
 fillObjE :: SymbolicObj3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillObjE obj = Obj [(shl_3$ shl_3 fillObj) obj]
@@ -188,7 +246,7 @@ fillRastE :: Raster3 -> Expr (ℝ3 -> ℝ -> [ℝ3])
 fillRastE rast = Obj [(\_ _ -> fillRast rast)]
 
 fillE :: [ℝ3] -> (ℝ3 -> ℝ) -> Expr (ℝ3 -> ℝ -> [ℝ3])
-fillE frontier0 fn = Obj [flip (\_ -> shl_3 fill frontier0 fn)]
+fillE frontier0 fn = Obj [(shl_4$ shl_4 fill) frontier0 fn]
 
 translateE :: ℝ3 -> (ℝ3 -> ℝ3)
 translateE v = (+v)
@@ -252,21 +310,19 @@ apply_mask mask rast@(Raster3 res@(xr, yr, zr) _) = window_int pixel_to_pixels r
 
 dilate :: ℝ -> Raster3 -> Raster3
 dilate r rast@(Raster3 res _) = apply_mask mask rast
-  where mask = fill res [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 +z^2 - r^2)
+  where mask = fill res 0 [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 +z^2 - r^2)
 
 surrounding :: (Int, Int, Int) -> [(Int, Int, Int)]
-surrounding (x, y, z) =
-  [ (x + dx, y + dy, z + dz)
-  | dx <- ds, dy <- ds, dz <- ds, dx /= 0 || dy /= 0 || dz /= 0
-  ]
+surrounding = \coords -> map (+coords) d
   where
     ds = [-1, 0, 1]
+    d = [(dx, dy, dz) | dx <- ds, dy <- ds, dz <- ds, dx /= 0 || dy /= 0 || dz /= 0]
 
 example_shell = blank 0 (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
   map (, True) (shell (0.05, 0.05, 0.05) [(1, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
 example_fill = blank 0 (0.1, 0.1, 0.1) ((-1.3, -1.3, -1.3), (1.3, 1.3, 1.3)) //
-  map (, True) (fill (0.05, 0.05, 0.05) [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
+  map (, True) (fill (0.05, 0.05, 0.05) 0 [(0, 0, 0)] (\(x, y, z) -> x^2 + y^2 + z^2 - 1))
 
 example_dilate = dilate 0.2 example_shell
 
